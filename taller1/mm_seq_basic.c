@@ -1,20 +1,15 @@
-// mm_seq_min.c
-// Compilar:  gcc -O3 -std=c11 mm_seq_min.c -o mm_seq_min
-// Ejecutar:  ./mm_seq_min 512          (N = 512)
-//            ./mm_seq_min 512 12345    (N = 512, semilla = 12345)
-//
-// Contiene únicamente:
-//  - alloc_matrix / alloc_zero_matrix
-//  - random_int32 / fill_random_int32
-//  - matmul_seq (O(n^3))
-//  - parse_positive_int (para leer N y semilla)
-// Sin E/S estándar (no printf/scanf).
+// mm_seq_time_log.c
+// Compilar:  gcc -O3 -std=c11 -march=native mm_seq_time_log.c -o mm_seq_time_log
+// Ejecutar (con semilla opcional):
+//   ./mm_seq_time_log 500 12345 tiempos.txt
+//   ./mm_seq_time_log 500 tiempos.txt        // sin semilla
 
 #include <stdlib.h>
 #include <stdint.h>
 #include <time.h>
 #include <errno.h>
 #include <limits.h>
+#include <stdio.h>   // solo para E/S a archivo (no stdout/stderr)
 
 // -------------------- Random 32-bit --------------------
 static int32_t random_int32(void) {
@@ -25,7 +20,11 @@ static int32_t random_int32(void) {
 
 static void fill_random_int32(int32_t *M, int n) {
     size_t nn = (size_t)n * (size_t)n;
-    for (size_t i = 0; i < nn; ++i) M[i] = random_int32();
+    for (size_t i = 0; i < nn; ++i) {
+        // Limito valores a 16 bits para reducir riesgo de overflow acumulado
+        M[i] = (int32_t)((rand() & 0xFFFF) - 32768); // [-32768, 32767]
+        // Si prefieres todo el rango 32-bit, usa: M[i] = random_int32();
+    }
 }
 
 // -------------------- Matrices --------------------
@@ -64,18 +63,27 @@ static int parse_positive_int(const char *s, int *out) {
     return 1;
 }
 
-// -------------------- main (sin I/O estándar) --------------------
+// -------------------- main --------------------
 int main(int argc, char **argv) {
-    if (argc < 2) return 2;        // falta N
-    int N = 0;
-    if (!parse_positive_int(argv[1], &N)) return 3; // N inválido
+    // Argumentos esperados:
+    //  - N y archivo (2 args), o
+    //  - N, semilla y archivo (3 args)
+    if (argc < 3) return 2;
 
-    if (argc >= 3) {
-        int seed = 0;
-        if (!parse_positive_int(argv[2], &seed)) return 4; // semilla inválida
-        srand((unsigned)seed);
-    } else {
+    int N = 0;
+    if (!parse_positive_int(argv[1], &N)) return 3;
+
+    const char *outfile = NULL;
+    if (argc == 3) {
+        // Sin semilla: argv[2] es el archivo
+        outfile = argv[2];
         srand((unsigned)time(NULL));
+    } else {
+        // Con semilla y archivo
+        int seed = 0;
+        if (!parse_positive_int(argv[2], &seed)) return 4;
+        srand((unsigned)seed);
+        outfile = argv[3];
     }
 
     int32_t *A = alloc_matrix(N);
@@ -83,14 +91,34 @@ int main(int argc, char **argv) {
     int32_t *C = alloc_zero_matrix(N);
     if (!A || !B || !C) {
         free(A); free(B); free(C);
-        return 6; // memoria insuficiente
+        return 6;
     }
 
     fill_random_int32(A, N);
     fill_random_int32(B, N);
-    matmul_seq(A, B, C, N);
 
-    // No imprimimos ni devolvemos datos; solo liberamos y salimos
+    struct timespec t0, t1;
+    clock_gettime(CLOCK_MONOTONIC, &t0);
+    matmul_seq(A, B, C, N);
+    clock_gettime(CLOCK_MONOTONIC, &t1);
+
+    // Tiempo en segundos (double)
+    double elapsed = (t1.tv_sec - t0.tv_sec) +
+                     (t1.tv_nsec - t0.tv_nsec) / 1e9;
+
+    // Abrir archivo en modo append y escribir "N=XXXX <segundos>"
+    FILE *f = fopen(outfile, "tiempos.txt");
+    if (f) {
+        // una línea por corrida, etiquetada con N
+        // Ejemplo: "N=500 0.023451"
+        fprintf(f, "N=%d %.6f\n", N, elapsed);
+        fclose(f);
+    } else {
+        // Si no se pudo abrir, retornamos error diferente
+        free(A); free(B); free(C);
+        return 7;
+    }
+
     free(A); free(B); free(C);
     return 0;
 }
