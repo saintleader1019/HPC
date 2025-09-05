@@ -1,8 +1,8 @@
 // mm_mt_time_log.c (v2 sin transposición)
-// Compilar:  gcc -O3 -std=c11 -march=native -pthread mm_mt_time_log.c -o mm_mt_time_log
+// Compilar:  gcc -O3 -std=c11 -march=native -pthread mm_threads.c -o mm_threads_time_log
 // Ejecutar (ejemplos):
-//   ./mm_mt_time_log 1000 4 tiempos.txt
-//   ./mm_mt_time_log 2000 8 12345 tiempos.txt
+//   ./mm_threads_time_log 1000 4 tiempos.txt
+//   ./mm_threads_time_log 2000 8 12345 tiempos.txt
 //
 // Argumentos:
 //   1) N              (tamaño de la matriz cuadrada, obligatorio)
@@ -18,6 +18,8 @@
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>      // solo para E/S a archivo (no stdout/stderr)
+//sudo apt update
+//sudo apt install build-essential
 #include <pthread.h>
 
 typedef struct {
