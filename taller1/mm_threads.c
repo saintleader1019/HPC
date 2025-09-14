@@ -12,6 +12,7 @@
 //
 // Salida a archivo (append), una línea por corrida: "N=<N> T=<T> <segundos>"
 
+#define _POSIX_C_SOURCE 199309L
 #include <stdlib.h>
 #include <stdint.h>
 #include <time.h>

@@ -1,9 +1,10 @@
 // mm_seq_time_log.c
-// Compilar:  gcc -O3 -std=c11 -march=native mm_seq_time_log.c -o mm_seq_time_log
+// Compilar:  gcc -O3 -std=c11 -march=native mm_seq_basic.c -o mm_seq
 // Ejecutar (con semilla opcional):
 //   ./mm_seq_time_log 500 12345 tiempos.txt
 //   ./mm_seq_time_log 500 tiempos.txt        // sin semilla
 
+#define _POSIX_C_SOURCE 199309L
 #include <stdlib.h>
 #include <stdint.h>
 #include <time.h>
@@ -107,7 +108,7 @@ int main(int argc, char **argv) {
                      (t1.tv_nsec - t0.tv_nsec) / 1e9;
 
     // Abrir archivo en modo append y escribir "N=XXXX <segundos>"
-    FILE *f = fopen(outfile, "tiempos.txt");
+    FILE *f = fopen(outfile, "a");   // abrir en append el archivo pasado por CLI
     if (f) {
         // una línea por corrida, etiquetada con N
         // Ejemplo: "N=500 0.023451"

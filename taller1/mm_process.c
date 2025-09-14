@@ -17,6 +17,7 @@
 // Salida en archivo (append), una línea por corrida:
 //   N=<N> P=<P> <segundos>
 
+#define _POSIX_C_SOURCE 199309L
 #define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdint.h>
