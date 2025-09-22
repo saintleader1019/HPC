@@ -1,4 +1,4 @@
-// buffon_serial_mm.c
+#define _POSIX_C_SOURCE 199309L
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
