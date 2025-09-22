@@ -1,9 +1,7 @@
-// common.h
 #pragma once
 #include <stdint.h>
 #include <time.h>
 
-// RNG simple y rápido: xorshift64*
 typedef struct { uint64_t s; } rng64_t;
 
 static inline uint64_t xorshift64s(rng64_t* st) {
@@ -14,7 +12,6 @@ static inline uint64_t xorshift64s(rng64_t* st) {
 }
 
 static inline double rand01(rng64_t* st) {
-    // 53 bits para double en [0,1)
     return (xorshift64s(st) >> 11) * (1.0/9007199254740992.0);
 }
 
