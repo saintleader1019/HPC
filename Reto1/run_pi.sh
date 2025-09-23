@@ -3,18 +3,18 @@ set -euo pipefail
 
 # ============== CONFIGURACIÓN ==============
 # Pon aquí los ejecutables (rutas) y sus etiquetas
-EXES=( "./dart_v1_serial" "./dart_v1_serial1" "./dart_v1_serial2" "./dart_v1_serial3" "./buffon_v1_serial" "./buffon_v1_serial1" "./buffon_v1_serial2" "./buffon_v1_serial3" )
-NAMES=( "dart0" "dart1" "dart2" "dart3" "buffon0" "buffon1" "buffon2" "buffon3" )
-#T=( 2 4 8 )
+EXES=( "./dart_v3_fork0" "./dart_v3_fork1" "./buffon_v3_fork0" "./buffon_v3_fork1" )
+NAMES=( "dart_fork0" "dart_fork1" "buffon_fork0" "buffon_fork1" )
+T=( 2 4 8 )
 
 # Tamaños a probar
-NS=( 1000000 5000000 10000000 50000000 )
+NS=( 100000000 500000000 1000000000 5000000000 )
 
 # Repeticiones del conjunto completo de tamaños
 REPS=10
 
 # Carpeta/archivos de salida
-OUT_DIR="resultados_pi"
+OUT_DIR="resultados_fork_pi"
 mkdir -p "$OUT_DIR"
 # ===========================================
 
@@ -29,13 +29,13 @@ run_suite() {
   echo ">>> Versión: $name ($exe)"
   for rep in $(seq 1 "$REPS"); do
     echo "  Repetición global $rep..."
-    #for t in "${T[@]}"; do
-      #echo " Numero de hilos o procesos $t..."
+    for t in "${T[@]}"; do
+      echo " Numero de hilos o procesos $t..."
       for n in "${NS[@]}"; do
         echo "    Ejecutando N=$n..."
-        "$exe" "$n" "$n" "$out_file"
+        "$exe" "$n" "$t" "$out_file"
       done
-    #done
+    done
   done
 
   echo ">>> Terminado $name. Salida en: $out_file"
