@@ -9,14 +9,15 @@
 //
 // Nota: El tiempo medido **excluye** la transposición de B. Solo mide la multiplicación A × B utilizando Bt.
 
+#define _POSIX_C_SOURCE 200112L
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdio.h>     // solo para E/S a archivo (no stdout/stderr)
+#include <stdio.h>
 #include <time.h>
 #include <errno.h>
 #include <limits.h>
 #include <omp.h>
-#include <string.h>    // memset
+#include <string.h>
 #include <stdalign.h>
 
 static int parse_positive_int(const char *s, int *out) {

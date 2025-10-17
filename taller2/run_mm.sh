@@ -10,7 +10,7 @@ NAMES=( "mm_omp" "mm_omp_O3" "mm_omp_opt_mem" "mm_omp_opt_mem_O3" )
 T=( 2 4 8 )
 
 # Tamaños de matrices
-NS=(1024 2048 4096 8192)
+NS=(1024 2048 4096)
 
 # Repeticiones del conjunto completo
 REPS=10
