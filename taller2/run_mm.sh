@@ -36,6 +36,14 @@ run_suite() {
       for n in "${NS[@]}"; do
         echo "    Ejecutando N=$n..."
         "$exe" "$n" "$t" "$out_file"
+        
+
+        if [[ -f gmon.out ]]; then
+          new_gmon="${OUT_DIR}/gmon_${name}_N${n}_T${t}_rep${rep}.out"
+          mv gmon.out "$new_gmon"
+          echo "      → guardado perfil: $new_gmon"
+        fi
+
       done
     done
   done
