@@ -1,10 +1,3 @@
-// Compilar:
-//   gcc -O3 -std=c11 -march=native -fopenmp mm_omp_bt_time_log.c -o mm_omp_bt_time_log
-//
-// Ejecutar (ejemplos):
-//   ./mm_omp_bt_time_log 1000 4 tiempos_bt.txt
-//   ./mm_omp_bt_time_log 2000 8 tiempos_bt.txt 12345
-//
 // Args:
 //   1) N        (tamaño de la matriz cuadrada, obligatorio)
 //   2) T        (número de hilos OpenMP, obligatorio)
