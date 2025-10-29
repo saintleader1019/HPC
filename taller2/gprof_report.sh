@@ -5,11 +5,11 @@ set -u  # sí queremos error por variables no definidas
 OUT_DIR="resultados_mm_omp"
 
 # Deben ser los mismos que usaste en run_mm.sh
-EXES=( "./mm_omp" "./mm_omp_O3" "./mm_omp_opt_mem" "./mm_omp_opt_mem_O3" )
-NAMES=( "mm_omp" "mm_omp_O3" "mm_omp_opt_mem" "mm_omp_opt_mem_O3" )
+EXES=( "./mm_seq" )
+NAMES=( "mm_seq" )
 
 NS=(1024 2048 4096)
-T=(2 4 8)
+#T=(2 4 8)
 REPS=10
 
 mkdir -p "$OUT_DIR"
@@ -31,8 +31,8 @@ for i in "${!EXES[@]}"; do
   for n in "${NS[@]}"; do
     for t in "${T[@]}"; do
       for rep in $(seq 1 "$REPS"); do
-        gmon_file="${OUT_DIR}/gmon_${name}_N${n}_T${t}_rep${rep}.out"
-        report_file="${OUT_DIR}/perfil_${name}_N${n}_T${t}_rep${rep}.txt"
+        gmon_file="${OUT_DIR}/gmon_${name}_N${n}_rep${rep}.out"
+        report_file="${OUT_DIR}/perfil_${name}_N${n}_rep${rep}.txt"
 
         if [[ -f "$gmon_file" ]]; then
           echo "  Generando ${report_file} ..."
