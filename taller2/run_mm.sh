@@ -7,7 +7,7 @@ EXES=( "./mm_seq" )
 NAMES=( "mm_seq" )
 
 # Cantidad de hilos OpenMP a probar
-T=( 2 4 8 )
+#T=( 2 4 8 )
 
 # Tamaños de matrices
 NS=(1024 2048 4096)
@@ -31,20 +31,20 @@ run_suite() {
   echo ">>> Versión: $name ($exe)"
   for rep in $(seq 1 "$REPS"); do
     echo "  Repetición global $rep..."
-    for t in "${T[@]}"; do
-      echo "  Hilos: $t..."
+    #for t in "${T[@]}"; do
+      #echo "  Hilos: $t..."
       for n in "${NS[@]}"; do
         echo "    Ejecutando N=$n..."
-        "$exe" "$n" "$t" "$out_file"
+        "$exe" "$n" "$out_file"
 
         if [[ -f gmon.out ]]; then
-          new_gmon="${OUT_DIR}/gmon_${name}_N${n}_T${t}_rep${rep}.out"
+          new_gmon="${OUT_DIR}/gmon_${name}_N${n}_rep${rep}.out"
           mv gmon.out "$new_gmon"
           echo "      → guardado perfil: $new_gmon"
         fi
 
       done
-    done
+    #done
   done
 
   echo ">>> Terminado $name. Resultados en: $out_file"
