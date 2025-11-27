@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <mpi.h>
+#include <unistd.h>  // para access()
 
 /**
  * Inicializa la carretera completa (solo en rank 0).
@@ -27,11 +28,7 @@ int count_cars(const int *road, int N) {
 }
 
 /**
- * Función que calcula el nuevo estado local usando la regla del triplete (L,C,R).
- * local_road: estado actual en este proceso (celdas 0..local_N-1)
- * new_local : estado siguiente
- * left_ghost, right_ghost: celdas vecinas externas
- * local_moves_out: número de carros que se movieron en este proceso
+ * Calcula el nuevo estado local usando la regla del triplete (L,C,R).
  */
 void step_local(const int *local_road,
                 int *new_local,
@@ -47,39 +44,22 @@ void step_local(const int *local_road,
         new_local[i] = 0;
     }
 
-    // Primero, contar movimientos: un carro se mueve si C==1 y R==0
+    // Contar movimientos: un carro se mueve si C==1 y R==0
     for (int i = 0; i < local_N; ++i) {
         int C = local_road[i];
         if (C == 1) {
-            int R;
-            if (i == local_N - 1)
-                R = right_ghost;
-            else
-                R = local_road[i + 1];
-
+            int R = (i == local_N - 1) ? right_ghost : local_road[i + 1];
             if (R == 0)
                 moves++;
         }
     }
 
-    // Ahora aplicar la regla del triplete para construir new_local
+    // Aplicar la regla del triplete para construir new_local
     for (int i = 0; i < local_N; ++i) {
         int C = local_road[i];
-        int L, R;
+        int L = (i == 0) ? left_ghost : local_road[i - 1];
+        int R = (i == local_N - 1) ? right_ghost : local_road[i + 1];
 
-        if (i == 0)
-            L = left_ghost;
-        else
-            L = local_road[i - 1];
-
-        if (i == local_N - 1)
-            R = right_ghost;
-        else
-            R = local_road[i + 1];
-
-        // Regla:
-        // - Si C==0 y L==1 -> un carro entra desde la izquierda (se mueve)
-        // - Si C==1 y R==1 -> el carro se queda
         int new_val = 0;
         if ((C == 0 && L == 1) || (C == 1 && R == 1))
             new_val = 1;
@@ -114,20 +94,16 @@ int main(int argc, char **argv) {
             fprintf(stderr, "  T    = iteraciones de tiempo (entero > 0)\n");
             fprintf(stderr, "  rho  = densidad inicial de carros (0.0 .. 1.0)\n");
             fprintf(stderr, "  seed = semilla del RNG (opcional)\n");
-            // Si hay parámetros malos, abortamos MPI limpiamente
-            if (N <= 0 || T <= 0 || rho < 0.0 || rho > 1.0) {
-                MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
-            }
+            MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
         }
     }
 
     // Broadcast de parámetros a todos los procesos
-    MPI_Bcast(&N,   1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&T,   1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&N,   1, MPI_INT,    0, MPI_COMM_WORLD);
+    MPI_Bcast(&T,   1, MPI_INT,    0, MPI_COMM_WORLD);
     MPI_Bcast(&rho, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&seed,1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&seed,1, MPI_UNSIGNED,0, MPI_COMM_WORLD);
 
-    // Cada proceso puede inicializar su RNG si lo necesita
     srand(seed + rank);
 
     // Cálculo de la distribución de celdas
@@ -137,7 +113,6 @@ int main(int argc, char **argv) {
     int local_N = base + (rank < rem ? 1 : 0);
 
     if (local_N == 0) {
-        // Para este ejercicio asumimos N >= size
         if (rank == 0) {
             fprintf(stderr, "Error: hay más procesos que celdas.\n");
         }
@@ -171,8 +146,8 @@ int main(int argc, char **argv) {
         for (int r = 0; r < size; ++r) {
             int ln = base + (r < rem ? 1 : 0);
             sendcounts[r] = ln;
-            displs[r] = offset;
-            offset += ln;
+            displs[r]     = offset;
+            offset       += ln;
         }
     }
 
@@ -190,7 +165,6 @@ int main(int argc, char **argv) {
                  local_road, local_N, MPI_INT,
                  0, MPI_COMM_WORLD);
 
-    // Ya podemos liberar el global_road si no lo necesitamos más
     if (rank == 0) {
         free(global_road);
         free(sendcounts);
@@ -201,7 +175,6 @@ int main(int argc, char **argv) {
     int local_cars = count_cars(local_road, local_N);
     int total_cars = 0;
     MPI_Reduce(&local_cars, &total_cars, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-    // difundir total_cars a todos
     MPI_Bcast(&total_cars, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     if (rank == 0) {
@@ -219,12 +192,10 @@ int main(int argc, char **argv) {
         int left_ghost, right_ghost;
 
         // Intercambio de halos
-        // 1) enviar primera celda al vecino izquierdo, recibir primera del vecino derecho
         MPI_Sendrecv(&local_road[0],         1, MPI_INT, left,  0,
                      &right_ghost,           1, MPI_INT, right, 0,
                      MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-        // 2) enviar última celda al vecino derecho, recibir última del vecino izquierdo
         MPI_Sendrecv(&local_road[local_N-1], 1, MPI_INT, right, 1,
                      &left_ghost,            1, MPI_INT, left,  1,
                      MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -232,7 +203,6 @@ int main(int argc, char **argv) {
         int local_moves = 0;
         step_local(local_road, new_local, local_N, left_ghost, right_ghost, &local_moves);
 
-        // Reducimos movimientos totales
         int global_moves = 0;
         MPI_Reduce(&local_moves, &global_moves, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
@@ -241,8 +211,7 @@ int main(int argc, char **argv) {
             printf("%d\t%.6f\n", t, v);
         }
 
-        // Intercambiamos buffers local_road y new_local
-        int *tmp = local_road;
+        int *tmp   = local_road;
         local_road = new_local;
         new_local  = tmp;
     }
@@ -251,7 +220,25 @@ int main(int argc, char **argv) {
     double elapsed = t1 - t0;
 
     if (rank == 0) {
-        fprintf(stderr, "Tiempo total de simulacion (MPI): %.6f s\n", elapsed);
+        fprintf(stderr, "Tiempo total de simulacion (MPI, %d procesos): %.6f s\n",
+                size, elapsed);
+
+        // ==== CSV de resultados de tiempo ====
+        // Formato: version,np,N,T,rho,tiempo_total
+        const char *csv_name = "resultados_mpi.csv";
+        int exists = (access(csv_name, F_OK) == 0);
+
+        FILE *f = fopen(csv_name, "a");
+        if (!f) {
+            fprintf(stderr, "No se pudo abrir %s para escribir CSV\n", csv_name);
+        } else {
+            if (!exists) {
+                fprintf(f, "version,np,N,T,rho,tiempo_total\n");
+            }
+            fprintf(f, "mpi,%d,%d,%d,%.3f,%.6f\n",
+                    size, N, T, rho, elapsed);
+            fclose(f);
+        }
     }
 
     free(local_road);

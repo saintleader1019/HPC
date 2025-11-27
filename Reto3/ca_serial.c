@@ -1,14 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/time.h>
+#include <unistd.h>  // para access()
 
 /**
  * Inicializa la carretera con carros (1) y huecos (0)
  * según una densidad rho en [0, 1].
  */
 void init_road(int *road, int N, double rho) {
-    int i;
-    for (i = 0; i < N; ++i) {
+    for (int i = 0; i < N; ++i) {
         double r = (double)rand() / (double)RAND_MAX;
         road[i] = (r < rho) ? 1 : 0;
     }
@@ -18,8 +19,8 @@ void init_road(int *road, int N, double rho) {
  * Cuenta el número total de carros en la carretera.
  */
 int count_cars(const int *road, int N) {
-    int i, total = 0;
-    for (i = 0; i < N; ++i) {
+    int total = 0;
+    for (int i = 0; i < N; ++i) {
         total += road[i];
     }
     return total;
@@ -33,18 +34,17 @@ int count_cars(const int *road, int N) {
  * moves_out = número de carros que se movieron en este paso
  */
 void step(const int *road, int *new_road, int N, int *moves_out) {
-    int i;
     int moves = 0;
 
     // Inicializamos el nuevo estado a 0 (todas vacías)
-    for (i = 0; i < N; ++i) {
+    for (int i = 0; i < N; ++i) {
         new_road[i] = 0;
     }
 
     // Recorremos celdas de la carretera
-    for (i = 0; i < N; ++i) {
+    for (int i = 0; i < N; ++i) {
         if (road[i] == 1) {
-            int j = (i + 1 == N) ? 0 : (i + 1);  // celda de adelante (con frontera periódica)
+            int j = (i + 1 == N) ? 0 : (i + 1);  // celda de adelante (periódico)
             if (road[j] == 0) {
                 // La celda de adelante está vacía: el carro avanza
                 new_road[j] = 1;
@@ -60,12 +60,12 @@ void step(const int *road, int *new_road, int N, int *moves_out) {
 }
 
 /**
- * Medición sencilla de tiempo con clock_gettime (monotónico).
+ * Tiempo en segundos usando gettimeofday (portátil).
  */
 double get_time_sec(void) {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (double)tv.tv_sec + (double)tv.tv_usec * 1e-6;
 }
 
 int main(int argc, char **argv) {
@@ -132,7 +132,23 @@ int main(int argc, char **argv) {
 
     double t1 = get_time_sec();
     double elapsed = t1 - t0;
-    fprintf(stderr, "Tiempo total de simulacion: %.6f s\n", elapsed);
+    fprintf(stderr, "Tiempo total de simulacion (serial): %.6f s\n", elapsed);
+
+    // ==== CSV de resultados de tiempo ====
+    // Formato: version,np,N,T,rho,tiempo_total
+    const char *csv_name = "resultados_serial.csv";
+    int exists = (access(csv_name, F_OK) == 0);
+
+    FILE *f = fopen(csv_name, "a");
+    if (!f) {
+        fprintf(stderr, "No se pudo abrir %s para escribir CSV\n", csv_name);
+    } else {
+        if (!exists) {
+            fprintf(f, "version,np,N,T,rho,tiempo_total\n");
+        }
+        fprintf(f, "serial,1,%d,%d,%.3f,%.6f\n", N, T, rho, elapsed);
+        fclose(f);
+    }
 
     free(road);
     free(new_road);

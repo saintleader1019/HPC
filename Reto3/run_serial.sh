@@ -11,10 +11,6 @@ NS=(1000 10000 100000)           # puedes agregar más: (100000 500000 1000000)
 TS=(2000)              # puedes agregar más: (1000 2000)
 # Densidades de carros
 RHOS=(0.3 0.7)             # por ejemplo: (0.1 0.3 0.5 0.7)
-
-# Número de procesos MPI a probar
-PROCS=(1 2 4 8)
-
 # Repeticiones por configuración (para promediar luego)
 REPS=10
 
@@ -26,10 +22,9 @@ SEED_BASE=1234
 # -------------------------------
 
 SERIAL_CSV="resultados_serial.csv"
-MPI_CSV="resultados_mpi.csv"
 
 echo "Limpiando CSV anteriores..."
-rm -f "$SERIAL_CSV" "$MPI_CSV"
+rm -f "$SERIAL_CSV"
 
 # Los encabezados los escriben los propios programas si el archivo no existe,
 # así que no hace falta escribirlos aquí.
@@ -38,9 +33,9 @@ rm -f "$SERIAL_CSV" "$MPI_CSV"
 # Verificación de ejecutables
 # -------------------------------
 
-if [[ ! -x ./ca_mpi ]]; then
-  echo "Error: ./ca_mpi no existe o no es ejecutable. Compila primero:"
-  echo "  mpicc -O2 -std=c11 -Wall ca_mpi.c -o ca_mpi"
+if [[ ! -x ./ca_serial ]]; then
+  echo "Error: ./ca_serial no existe o no es ejecutable. Compila primero:"
+  echo "  gcc -O2 -std=c11 -Wall ca_serial.c -o ca_serial"
   exit 1
 fi
 
@@ -56,13 +51,10 @@ for N in "${NS[@]}"; do
       echo "Configuración: N=$N, T=$T, rho=$rho"
       echo "=============================================="
 
-      # ---- MPI con distintos np ----
-      for np in "${PROCS[@]}"; do
-        for rep in $(seq 1 "$REPS"); do
-          seed=$((SEED_BASE + rep))
-          echo "[MPI] np=$np  rep=$rep  N=$N  T=$T  rho=$rho  seed=$seed"
-          mpirun -np "$np" ./ca_mpi "$N" "$T" "$rho" "$seed" > /dev/null
-        done
+      for rep in $(seq 1 "$REPS"); do
+        seed=$((SEED_BASE + rep))
+        echo "[SERIAL] rep=$rep  N=$N  T=$T  rho=$rho  seed=$seed"
+        ./ca_serial "$N" "$T" "$rho" "$seed" > /dev/null
       done
 
     done
