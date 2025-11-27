@@ -6,7 +6,7 @@ set -euo pipefail
 # -------------------------------
 
 # Tamaños de la carretera a probar
-NS=(1000 10000 100000)           # puedes agregar más: (100000 500000 1000000)
+NS=(100000 1000000 10000000)           # puedes agregar más: (100000 500000 1000000)
 # Iteraciones de tiempo
 TS=(2000)              # puedes agregar más: (1000 2000)
 # Densidades de carros
